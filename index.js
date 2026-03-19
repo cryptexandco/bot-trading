@@ -13,7 +13,7 @@ const client = new Client({
 // 🔎 Fonction récupération news macro
 async function getMacroNews() {
   try {
-    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=${NEWS_API}`;
+    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=${process.env.NEWS_API}`;
     const res = await axios.get(url);
 
     return res.data.articles.map(a => ({
@@ -27,14 +27,25 @@ async function getMacroNews() {
 }
 
 // 📊 Génération biais simple (placeholder intelligent)
-function generateBias() {
-  // Ici tu peux améliorer avec logique avancée plus tard
-  const biases = [
-    "Bullish USD (risk-off possible)",
-    "Bearish USD (risk-on possible)",
-    "Range / Indécision macro",
-  ];
-  return biases[Math.floor(Math.random() * biases.length)];
+function generateBias(news) {
+  let bullish = 0;
+  let bearish = 0;
+
+  news.forEach(n => {
+    const text = n.title.toLowerCase();
+
+    if (text.includes("inflation") || text.includes("rate") || text.includes("hike")) {
+      bearish++;
+    }
+
+    if (text.includes("cut") || text.includes("dovish") || text.includes("growth")) {
+      bullish++;
+    }
+  });
+
+  if (bullish > bearish) return "Bullish (Risk-On)";
+  if (bearish > bullish) return "Bearish (Risk-Off)";
+  return "Neutral / Indecision";
 }
 
 // 🧾 Format message pro pour élèves
@@ -82,7 +93,7 @@ cron.schedule("0 4 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
-  const bias = generateBias();
+  const bias = generateBias(news);
   const message = formatMessage(news, bias);
 
   channel.send("📊 **Morning Macro Briefing (Dubai 08:00)**\n\n" + message);
@@ -93,7 +104,7 @@ cron.schedule("30 11 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
-  const bias = generateBias();
+  const bias = generateBias(news);
   const message = formatMessage(news, bias);
 
   channel.send("🗞️ **US Session Update (Dubai 15:30)**\n\n" + message);
