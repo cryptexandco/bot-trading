@@ -1,0 +1,19 @@
+{
+  "name": "bot-trading",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+  "start": "node index.js",
+  "test": "echo \"Error: no test specified\" && exit 1"
+}
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "cron": "^4.4.0",
+    "discord.js": "^14.25.1",
+    "express": "^5.2.1"
+  }
+}
