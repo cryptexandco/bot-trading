@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 const axios = require("axios");
-const { CronJob } = require("cron");
+const cron = require("node-cron");
 
 const TOKEN = process.env.TOKEN;
 const CHANNEL_ID = "1476694169240993793";
@@ -76,29 +76,27 @@ client.once("ready", async () => {
   }
 });
 
-  // 📊 Daily Macro (08:00 Dubaï = 04:00 UTC)
-new CronJob("0 4 * * *", async () => {
+
+// 📊 Morning Macro (08:00 Dubai = 04:00 UTC)
+cron.schedule("0 4 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
   const bias = generateBias();
-
   const message = formatMessage(news, bias);
 
   channel.send("📊 **Morning Macro Briefing (Dubai 08:00)**\n\n" + message);
-}, null, true, "UTC");
+});
 
-
-// 🗞️ US Update (15:30 Dubaï = 11:30 UTC)
-new CronJob("30 11 * * *", async () => {
+// 🗞️ US Update (15:30 Dubai = 11:30 UTC)
+cron.schedule("30 11 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
   const bias = generateBias();
-
   const message = formatMessage(news, bias);
 
   channel.send("🗞️ **US Session Update (Dubai 15:30)**\n\n" + message);
-}, null, true, "UTC");
+});
 
 client.login(TOKEN);
