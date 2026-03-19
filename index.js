@@ -89,7 +89,7 @@ client.once("ready", async () => {
 
 
 // 📊 Morning Macro (08:00 Dubai = 04:00 UTC)
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("0 4 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
@@ -100,7 +100,7 @@ cron.schedule("*/1 * * * *", async () => {
 });
 
 // 🗞️ US Update (15:30 Dubai = 11:30 UTC)
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("30 11 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
