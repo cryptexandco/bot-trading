@@ -28,43 +28,46 @@ async function getMacroNews() {
 
 // 📊 Génération biais simple (placeholder intelligent)
 function generateBias(news) {
-  let bullish = 0;
-  let bearish = 0;
+  let score = 0;
 
   news.forEach(n => {
     const text = n.title.toLowerCase();
 
-    if (text.includes("inflation") || text.includes("rate") || text.includes("hike")) {
-      bearish++;
-    }
+    // 🔴 Bearish (risk-off / USD strong)
+    if (text.includes("inflation")) score -= 2;
+    if (text.includes("rate hike")) score -= 2;
+    if (text.includes("hawkish")) score -= 1;
 
-    if (text.includes("cut") || text.includes("dovish") || text.includes("growth")) {
-      bullish++;
-    }
+    // 🟢 Bullish (risk-on)
+    if (text.includes("rate cut")) score += 2;
+    if (text.includes("dovish")) score += 1;
+    if (text.includes("growth")) score += 1;
   });
 
-  if (bullish > bearish) return "Bullish (Risk-On)";
-  if (bearish > bullish) return "Bearish (Risk-Off)";
-  return "Neutral / Indecision";
+  let sentiment = "Neutral";
+  if (score >= 2) sentiment = "Bullish (Risk-On)";
+  if (score <= -2) sentiment = "Bearish (Risk-Off)";
+
+  return { score, sentiment };
 }
 
 // 🧾 Format message pro pour élèves
-function formatMessage(news, bias) {
+function formatMessage(news, biasData) {
   let msg = `📊 **Daily Macro Briefing**\n\n`;
 
-  msg += `📌 **Market Bias (Global)**:\n`;
-  msg += `➡️ ${bias}\n\n`;
+  msg += `📌 **Bias Score**: ${biasData.score}\n`;
+  msg += `🧠 **Sentiment**: ${biasData.sentiment}\n\n`;
 
-  msg += `🗞️ **Macro News**:\n`;
+  msg += `🗞️ **Top Macro News**:\n`;
 
-  news.forEach((n, i) => {
+  news.slice(0, 5).forEach((n, i) => {
     msg += `\n${i + 1}. ${n.title} (${n.source})`;
   });
 
-  msg += `\n\n💱 **Pairs Watchlist**:\n`;
-  msg += `- XAU/USD\n- EUR/USD\n- USD/JPY\n\n`;
+  msg += `\n\n💱 **Focus Assets**:\n`;
+  msg += `- XAU/USD\n- EUR/USD\n- NAS100\n\n`;
 
-  msg += `⚠️ Always wait for confirmation before entering trades.`;
+  msg += `⚠️ Trade with confirmation only.`;
 
   return msg;
 }
@@ -94,7 +97,6 @@ cron.schedule("0 4 * * *", async () => {
 
   const news = await getMacroNews();
   const bias = generateBias(news);
-  const message = formatMessage(news, bias);
 
   channel.send("📊 **Morning Macro Briefing (Dubai 08:00)**\n\n" + message);
 });
@@ -104,8 +106,8 @@ cron.schedule("30 11 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
-  const bias = generateBias(news);
-  const message = formatMessage(news, bias);
+  const biasData = generateBias(news);
+const message = formatMessage(news, biasData);
 
   channel.send("🗞️ **US Session Update (Dubai 15:30)**\n\n" + message);
 });
