@@ -7,13 +7,18 @@ const CHANNEL_ID = "1476694169240993793";
 const NEWS_API = process.env.NEWS_API;
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
+
 
 // 🔎 Fonction récupération news macro
 async function getMacroNews() {
   try {
-    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=10&apiKey=${process.env.NEWS_API}`;
+    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=10&apiKey=${NEWS_API}`;
     const res = await axios.get(url);
 
     const keywords = [
@@ -45,19 +50,18 @@ async function getMacroNews() {
   }
 }
 
-// 📊 Génération biais simple (placeholder intelligent)
+
+// 📊 Génération biais
 function generateBias(news) {
   let score = 0;
 
   news.forEach(n => {
     const text = n.title.toLowerCase();
 
-    // 🔴 Bearish (risk-off / USD strong)
     if (text.includes("inflation")) score -= 2;
     if (text.includes("rate hike")) score -= 2;
     if (text.includes("hawkish")) score -= 1;
 
-    // 🟢 Bullish (risk-on)
     if (text.includes("rate cut")) score += 2;
     if (text.includes("dovish")) score += 1;
     if (text.includes("growth")) score += 1;
@@ -70,7 +74,8 @@ function generateBias(news) {
   return { score, sentiment };
 }
 
-// 👇 ICI tu ajoutes
+
+// 📊 Analyse actifs
 function analyzeAssets(score) {
   let focus = [];
 
@@ -92,7 +97,9 @@ function analyzeAssets(score) {
 
   return focus;
 }
-// 🧾 Format message pro pour élèves
+
+
+// 🧾 Format message
 function formatMessage(news, biasData) {
   let msg = `📊 **Daily Macro Briefing (Pro)**\n\n`;
 
@@ -121,7 +128,8 @@ function formatMessage(news, biasData) {
   return msg;
 }
 
-// 🚀 Bot prêt
+
+// 🚀 READY
 client.once("ready", async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -131,34 +139,53 @@ client.once("ready", async () => {
     if (channel) {
       await channel.send("✅ Bot connecté et opérationnel !");
       console.log("Message envoyé");
-    } else {
-      console.log("Channel introuvable");
     }
   } catch (error) {
-    console.error("Erreur lors de l'envoi du message :", error);
+    console.error(error);
   }
 });
 
 
-// 📊 Morning Macro (08:00 Dubai = 04:00 UTC)
+// 📩 Commande !macro
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+
+  if (message.content === "!macro") {
+    const news = await getMacroNews();
+    const biasData = generateBias(news);
+
+    const msg = formatMessage(news, biasData);
+
+    message.channel.send(msg);
+  }
+});
+
+
+// ⏰ CRON MORNING
 cron.schedule("0 4 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
-  const bias = generateBias(news);
+  const biasData = generateBias(news);
+
+  const message = formatMessage(news, biasData);
 
   channel.send("📊 **Morning Macro Briefing (Dubai 08:00)**\n\n" + message);
 });
 
-// 🗞️ US Update (15:30 Dubai = 11:30 UTC)
+
+// ⏰ CRON US SESSION
 cron.schedule("30 11 * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
   const biasData = generateBias(news);
-const message = formatMessage(news, biasData);
+
+  const message = formatMessage(news, biasData);
 
   channel.send("🗞️ **US Session Update (Dubai 15:30)**\n\n" + message);
 });
 
+
+// 🔐 LOGIN
 client.login(TOKEN);
