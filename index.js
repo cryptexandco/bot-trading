@@ -13,13 +13,32 @@ const client = new Client({
 // 🔎 Fonction récupération news macro
 async function getMacroNews() {
   try {
-    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=5&apiKey=${process.env.NEWS_API}`;
+    const url = `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=10&apiKey=${process.env.NEWS_API}`;
     const res = await axios.get(url);
 
-    return res.data.articles.map(a => ({
+    const keywords = [
+      "inflation",
+      "interest rate",
+      "fed",
+      "central bank",
+      "cpi",
+      "fomc",
+      "gdp",
+      "recession"
+    ];
+
+    const filtered = res.data.articles.filter(a => {
+      const title = a.title.toLowerCase();
+      return keywords.some(k => title.includes(k));
+    });
+
+    const finalNews = filtered.length > 0 ? filtered : res.data.articles;
+
+    return finalNews.map(a => ({
       title: a.title,
       source: a.source.name
     }));
+
   } catch (err) {
     console.log("Erreur API news:", err.message);
     return [];
@@ -51,23 +70,53 @@ function generateBias(news) {
   return { score, sentiment };
 }
 
+// 👇 ICI tu ajoutes
+function analyzeAssets(score) {
+  let focus = [];
+
+  if (score <= -2) {
+    focus.push("💵 USD Strength");
+    focus.push("📉 Gold Weak");
+    focus.push("📉 Indices Weak");
+  }
+
+  if (score >= 2) {
+    focus.push("📉 USD Weak");
+    focus.push("📈 Gold Strong");
+    focus.push("📈 Indices Strong");
+  }
+
+  if (score > -2 && score < 2) {
+    focus.push("⚖️ Range / No clear direction");
+  }
+
+  return focus;
+}
 // 🧾 Format message pro pour élèves
 function formatMessage(news, biasData) {
-  let msg = `📊 **Daily Macro Briefing**\n\n`;
+  let msg = `📊 **Daily Macro Briefing (Pro)**\n\n`;
 
   msg += `📌 **Bias Score**: ${biasData.score}\n`;
   msg += `🧠 **Sentiment**: ${biasData.sentiment}\n\n`;
 
-  msg += `🗞️ **Top Macro News**:\n`;
+  msg += `🔥 **High Impact News**:\n`;
 
-  news.slice(0, 5).forEach((n, i) => {
-    msg += `\n${i + 1}. ${n.title} (${n.source})`;
+  if (news.length === 0) {
+    msg += `\nNo major macro news detected.`;
+  } else {
+    news.slice(0, 5).forEach((n, i) => {
+      msg += `\n${i + 1}. ${n.title} (${n.source})`;
+    });
+  }
+
+  const focus = analyzeAssets(biasData.score);
+
+  msg += `\n\n💱 **Market Focus**:\n`;
+  focus.forEach(f => {
+    msg += `- ${f}\n`;
   });
 
-  msg += `\n\n💱 **Focus Assets**:\n`;
-  msg += `- XAU/USD\n- EUR/USD\n- NAS100\n\n`;
-
-  msg += `⚠️ Trade with confirmation only.`;
+  msg += `\n⚠️ Wait for confirmations before trading.`;
 
   return msg;
 }
@@ -92,7 +141,7 @@ client.once("ready", async () => {
 
 
 // 📊 Morning Macro (08:00 Dubai = 04:00 UTC)
-cron.schedule("0 4 * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
@@ -102,7 +151,7 @@ cron.schedule("0 4 * * *", async () => {
 });
 
 // 🗞️ US Update (15:30 Dubai = 11:30 UTC)
-cron.schedule("30 11 * * *", async () => {
+cron.schedule("*/1 * * * *", async () => {
   const channel = await client.channels.fetch(CHANNEL_ID);
 
   const news = await getMacroNews();
